@@ -123,31 +123,31 @@ const QuizScreen = () => {
           <div className="space-y-4">
             <Card className="shadow-card border-border">
               <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-xs text-muted-foreground">Question {currentQ + 1} of {quizQuestions.length}</span>
                   <span className="text-xs text-muted-foreground">{scannedStudents.length}/{classStudents.length} scanned</span>
                 </div>
               </CardHeader>
               <CardContent>
                 <h3 className="font-display text-lg font-bold text-foreground mb-4">{question.question}</h3>
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                   {question.options.map((opt, i) => (
-                    <div key={i} className="bg-secondary rounded-xl p-3 text-sm text-foreground font-medium text-center">
+                    <div key={i} className="bg-secondary rounded-xl p-3 text-sm text-foreground font-medium text-center whitespace-normal break-words leading-relaxed min-h-[52px] flex items-center justify-center">
                       {opt}
                     </div>
                   ))}
                 </div>
 
-                <div className="flex flex-wrap gap-3 items-center">
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
                   <Button
                     onClick={simulateScan}
                     disabled={scanning || scannedStudents.length >= classStudents.length}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto"
                   >
                     <ScanLine className="w-4 h-4" />
                     {scanning ? "Scanning..." : "Scan QR Response"}
                   </Button>
-                  <Button variant="outline" onClick={nextQuestion}>
+                  <Button variant="outline" onClick={nextQuestion} className="w-full sm:w-auto">
                     {currentQ < quizQuestions.length - 1 ? "Next Question" : "View Leaderboard"}
                   </Button>
                 </div>

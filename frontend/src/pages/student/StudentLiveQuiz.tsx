@@ -172,14 +172,14 @@ const StudentLiveQuiz = () => {
             className="space-y-2"
           >
             {opts.map((o) => (
-              <div key={o.key} className="flex items-center space-x-2">
+              <div key={o.key} className="flex items-start space-x-2">
                 <RadioGroupItem value={o.key} id={`q-${o.key}`} />
-                <Label htmlFor={`q-${o.key}`} className="text-sm cursor-pointer flex-1">{o.key}. {o.label}</Label>
+                <Label htmlFor={`q-${o.key}`} className="text-sm cursor-pointer flex-1 whitespace-normal break-words leading-relaxed">{o.key}. {o.label}</Label>
               </div>
             ))}
           </RadioGroup>
           <div className="flex justify-end gap-2">
-            <Button onClick={handleSubmitAnswer} disabled={loading}>
+            <Button onClick={handleSubmitAnswer} disabled={loading} className="w-full sm:w-auto">
               {currentIndex < total - 1 ? "Next" : "Submit"}
             </Button>
           </div>

@@ -158,31 +158,32 @@ const StudentQuiz = () => {
                 return (
                   <button
                     key={opt}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all whitespace-normal break-words ${
                       isSelected
                         ? "border-primary bg-teal-light"
                         : "border-border hover:border-primary/40 hover:bg-secondary"
                     }`}
                     onClick={() => handleAnswer(letter)}
                   >
-                    <span className="text-sm text-foreground">{opt}</span>
+                    <span className="text-sm text-foreground leading-relaxed">{opt}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between mt-6 gap-3">
               <Button
                 variant="outline"
                 disabled={currentQ === 0}
                 onClick={() => setCurrentQ(p => p - 1)}
+                className="w-full sm:w-auto"
               >
                 Previous
               </Button>
               {currentQ < questions.length - 1 ? (
-                <Button onClick={() => setCurrentQ(p => p + 1)}>Next</Button>
+                <Button onClick={() => setCurrentQ(p => p + 1)} className="w-full sm:w-auto">Next</Button>
               ) : (
-                <Button onClick={handleSubmit} className="gap-1">
+                <Button onClick={handleSubmit} className="gap-1 w-full sm:w-auto">
                   <CheckCircle2 className="w-4 h-4" /> Submit Quiz
                 </Button>
               )}
