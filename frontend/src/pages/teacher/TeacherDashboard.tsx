@@ -1343,16 +1343,16 @@ const TeacherDashboard = () => {
         {/* Launch Quiz — fully internal scanner flow (no external redirect/iframe) */}
         <Dialog open={showLaunchQuizDialog} onOpenChange={setShowLaunchQuizDialog}>
           <DialogContent
-            className="w-[min(98vw,1240px)] max-w-[98vw] h-[min(92dvh,860px)] max-h-[92dvh] p-4 sm:p-6 flex flex-col gap-3 sm:gap-4 overflow-y-auto"
+            className="w-[min(98vw,1240px)] max-w-[98vw] h-[min(92dvh,860px)] max-h-[92dvh] p-4 sm:p-6 flex flex-col gap-0 overflow-hidden"
             aria-describedby={undefined}
           >
-            <DialogHeader className="flex-shrink-0">
+            <DialogHeader className="flex-shrink-0 pr-10 sm:pr-12 text-left">
               <DialogTitle className="font-display">Live Quiz — Internal QR Scanner</DialogTitle>
               <DialogDescription id="quiz-dialog-desc">
                 Step 1: scan this QR from mobile. Step 2: wait for device connection signal. Step 3: start capture and scan all 10 questions for all students from mobile.
               </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto pr-1">
+            <div className="flex-1 min-h-0 flex flex-col gap-3 sm:gap-4 overflow-y-auto overflow-x-hidden py-2 pr-1">
               <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
                 <Card className="border-border">
                   <CardHeader className="pb-2">
@@ -1411,11 +1411,13 @@ const TeacherDashboard = () => {
                 </Card>
               </div>
               <Card className="border-border min-h-0">
-                <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardHeader className="pb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 space-y-0">
                   <CardTitle className="text-sm font-display">Live Progress</CardTitle>
-                  <Button size="sm" variant="outline" onClick={handleEndLiveQuiz}>End Quiz</Button>
+                  <Button size="sm" variant="outline" onClick={handleEndLiveQuiz} className="w-full sm:w-auto shrink-0">
+                    End Quiz
+                  </Button>
                 </CardHeader>
-                <CardContent className="space-y-3 max-h-[56dvh] md:max-h-[46dvh] overflow-y-auto pb-2 min-h-0">
+                <CardContent className="space-y-3 pb-2">
                   {liveQuizCurrentQuestion?.question && (
                     <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
                       <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">
@@ -1446,7 +1448,7 @@ const TeacherDashboard = () => {
                       <p className="text-xs text-muted-foreground">
                         Eligible (present) students: <span className="font-medium text-foreground">{manualEligibleStudents.length}</span>
                       </p>
-                      <div className="space-y-2 max-h-[22dvh] overflow-y-auto pr-1">
+                      <div className="space-y-2 pr-1">
                         {manualEligibleStudents.map((s) => {
                           const picked = manualCurrentAnswers[s.id] || "";
                           return (
@@ -1528,9 +1530,9 @@ const TeacherDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-              <div className="flex justify-end gap-2 flex-shrink-0 sticky bottom-0 bg-background/95 py-1">
-                <Button variant="outline" onClick={() => setShowLaunchQuizDialog(false)}>Close</Button>
-              </div>
+            </div>
+            <div className="flex justify-end gap-2 flex-shrink-0 border-t border-border bg-background pt-3 mt-1">
+              <Button variant="outline" onClick={() => setShowLaunchQuizDialog(false)}>Close</Button>
             </div>
           </DialogContent>
         </Dialog>
