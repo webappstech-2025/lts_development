@@ -187,6 +187,29 @@ app.use("/uploads", express.static(uploadsDir));
 const QR_TYPES = ["DATA", "A", "B", "C", "D"];
 const APP_BASE_URL = (process.env.APP_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
 
+let loggedNgrokOverride = false;
+
+/**
+ * Stable public origin for QR payloads (student profile + live-quiz scan).
+ * Normally QR_BASE_URL wins (for a dev tunnel), then APP_BASE_URL.
+ * In production, if QR_BASE_URL still points at ngrok but APP_BASE_URL is the real site, use APP_BASE_URL.
+ */
+function getEnvPublicWebOrigin() {
+  const q = (process.env.QR_BASE_URL || "").trim().replace(/\/$/, "");
+  const a = (process.env.APP_BASE_URL || "").trim().replace(/\/$/, "");
+  const prod = process.env.NODE_ENV === "production";
+  if (prod && a && /ngrok-free\.dev|ngrok\.io|ngrok\.app/i.test(q)) {
+    if (!loggedNgrokOverride) {
+      loggedNgrokOverride = true;
+      console.warn(
+        "[qr] Production: QR_BASE_URL looks like ngrok — using APP_BASE_URL for scans. Remove QR_BASE_URL in Render when you no longer need it."
+      );
+    }
+    return a;
+  }
+  return q || a || "";
+}
+
 // Admin emails allowed for login without DB (plain-text password check: passadmin123)
 const STATIC_ADMINS = [
   { email: "admin1@aliet.com", full_name: "Admin 1" },
@@ -214,7 +237,8 @@ async function generateStudentQRCodes(db, studentId) {
   const created = [];
   for (const qrType of QR_TYPES) {
     const token = `stu${rollNo}_${qrType}`;
-    const qrCodeValue = qrType === "DATA" ? `${APP_BASE_URL}/student/qr/${encodeURIComponent(token)}` : token;
+    const webOrigin = getEnvPublicWebOrigin() || APP_BASE_URL;
+    const qrCodeValue = qrType === "DATA" ? `${webOrigin}/student/qr/${encodeURIComponent(token)}` : token;
     const filename = `${rollNo}_${qrType}.png`;
     const relativePath = "qrcodes/" + filename;
     try {
@@ -336,7 +360,7 @@ function pickLanIpv4() {
 }
 
 function getPublicAppBase(req) {
-  const fromEnv = (process.env.APP_BASE_URL || "").trim().replace(/\/$/, "");
+  const fromEnv = getEnvPublicWebOrigin();
   if (fromEnv) return fromEnv;
   const host = String(req.headers.host || "");
   const lan = pickLanIpv4();
@@ -348,7 +372,7 @@ function getPublicAppBase(req) {
 }
 
 function getPublicApiBase(req) {
-  const fromEnv = (process.env.QR_BASE_URL || "").trim().replace(/\/$/, "");
+  const fromEnv = getEnvPublicWebOrigin();
   if (fromEnv) return fromEnv;
   const host = String(req.headers.host || "");
   const lan = pickLanIpv4();
@@ -3784,6 +3808,17 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
 app.listen(Number(PORT), HOST, () => {
   console.log(`Server running on ${HOST}:${PORT}`);
+  const qrOrigin = getEnvPublicWebOrigin();
+  if (qrOrigin) {
+    console.log(`[qr] QR codes use public URL: ${qrOrigin}`);
+    if (/ngrok-free\.dev|ngrok\.io|ngrok\.app/i.test(qrOrigin)) {
+      console.warn(
+        "[qr] ngrok URL: tunnel must be running or scans fail (ERR_NGROK_3200). For production set APP_BASE_URL (and clear QR_BASE_URL) to your Render URL."
+      );
+    }
+  } else {
+    console.log("[qr] No QR_BASE_URL/APP_BASE_URL — live-quiz QR falls back to request Host or LAN IP");
+  }
   if (assetStorage.objectStorageEnabled()) {
     const b = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET;
     console.log(`[uploads] Storage: S3 (bucket=${b}, region=${process.env.AWS_REGION || "us-east-1"})`);
