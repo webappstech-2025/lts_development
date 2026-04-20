@@ -361,7 +361,7 @@ function pickLanIpv4() {
 
 function getPublicAppBase(req) {
   const fromEnv = getEnvPublicWebOrigin();
-  if (fromEnv) return fromEnv;
+  if (fromEnv && !/localhost|127\.0\.0\.1/i.test(fromEnv)) return fromEnv;
   const host = String(req.headers.host || "");
   const lan = pickLanIpv4();
   if (host && !/localhost|127\.0\.0\.1/i.test(host)) {
@@ -373,7 +373,7 @@ function getPublicAppBase(req) {
 
 function getPublicApiBase(req) {
   const fromEnv = getEnvPublicWebOrigin();
-  if (fromEnv) return fromEnv;
+  if (fromEnv && !/localhost|127\.0\.0\.1/i.test(fromEnv)) return fromEnv;
   const host = String(req.headers.host || "");
   const lan = pickLanIpv4();
   if (host && !/localhost|127\.0\.0\.1/i.test(host)) {
@@ -2954,6 +2954,7 @@ app.get("/live-quiz-scan", (req, res) => {
       .ok { color: #166534; font-size: 13px; margin-top: 6px; }
       .err { color: #b91c1c; font-size: 13px; margin-top: 6px; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   </head>
   <body>
     <div class="card">
@@ -2968,6 +2969,7 @@ app.get("/live-quiz-scan", (req, res) => {
       <button id="startCamBtn">Start camera</button>
       <button id="stopCamBtn" style="background:#6b7280;">Stop camera</button>
     </div>
+    <canvas id="canvas" style="display:none;"></canvas>
     <div class="card">
       <label class="muted">Question number</label>
       <input id="qno" type="number" min="1" value="1" />
@@ -3129,15 +3131,9 @@ app.get("/live-quiz-scan", (req, res) => {
         if (!video) return;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           msgEl.className = "err";
-          msgEl.textContent = "Camera not supported on this browser.";
+          msgEl.textContent = "Camera access failed. Note: Mobile browsers REQUIRE an HTTPS connection for camera access. Try using ngrok for a secure tunnel.";
           return;
         }
-        if (!("BarcodeDetector" in window)) {
-          msgEl.className = "err";
-          msgEl.textContent = "QR scanning requires BarcodeDetector support in this browser.";
-          return;
-        }
-        detector = new BarcodeDetector({ formats: ["qr_code"] });
         cameraRunning = true;
         try {
           cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -3149,46 +3145,59 @@ app.get("/live-quiz-scan", (req, res) => {
         } catch (e) {
           cameraRunning = false;
           msgEl.className = "err";
-          msgEl.textContent = e && e.message ? e.message : "Camera permission denied";
+          msgEl.textContent = "Camera permission denied or not available. (Check if site is HTTPS)";
           return;
         }
+
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
         const scanFrame = async () => {
           if (!cameraRunning) return;
           const v = document.getElementById("video");
           if (!v || v.readyState < 2) {
-            setTimeout(scanFrame, 250);
+            requestAnimationFrame(scanFrame);
             return;
           }
           try {
-            const barcodes = await detector.detect(v);
-            if (barcodes && barcodes.length > 0) {
-              const raw = barcodes[0].rawValue;
-              const now = Date.now();
-              if (raw && (raw !== lastAutoRaw || (now - lastAutoAt) > 1500)) {
-                lastAutoRaw = raw;
-                lastAutoAt = now;
-                const parsed = parseStudentQr(raw);
-                if (parsed) {
-                  try {
-                    await bufferQr(qnoValue(), raw);
-                    document.getElementById("qr").value = "";
-                  } catch (e) {
-                    // duplicates / not started are normal; don't spam
+            if (v.videoWidth > 0 && v.videoHeight > 0) {
+              canvas.width = v.videoWidth;
+              canvas.height = v.videoHeight;
+              ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+              });
+
+              if (code && code.data) {
+                const raw = code.data;
+                const now = Date.now();
+                if (raw && (raw !== lastAutoRaw || (now - lastAutoAt) > 1500)) {
+                  lastAutoRaw = raw;
+                  lastAutoAt = now;
+                  const parsed = parseStudentQr(raw);
+                  if (parsed) {
+                    try {
+                      await bufferQr(qnoValue(), raw);
+                      document.getElementById("qr").value = "";
+                    } catch (e) {
+                      msgEl.className = "muted";
+                      msgEl.textContent = e && e.message ? e.message : "Scan ignored";
+                    }
+                  } else {
                     msgEl.className = "muted";
-                    msgEl.textContent = e && e.message ? e.message : "Scan ignored";
+                    msgEl.textContent = "Scanned invalid QR: " + String(raw).slice(0, 20);
                   }
-                } else {
-                  msgEl.className = "muted";
-                  msgEl.textContent = "Scanned invalid QR";
                 }
               }
             }
-          } catch (_) {}
-          setTimeout(scanFrame, 250);
+          } catch (err) {
+            console.error("Scan error:", err);
+          }
+          requestAnimationFrame(scanFrame);
         };
 
-        scanFrame();
+        requestAnimationFrame(scanFrame);
       }
 
       function stopCamera() {
